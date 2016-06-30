@@ -68,8 +68,6 @@ class corpus(object):
                         words_to_add = sentence[start:end]
                         if set(words_to_add) < shortlist and len(words_to_add) > 0: # checks that all of the words in the ngram pass criterion
                             new_ngram = " ".join(words_to_add)
-                            if new_ngram == '':
-                                print 'empty ngram!'
                             self.add_ngram(new_ngram, T)
                             if ngram_size==1:
                                 self.wordcount += 1
@@ -175,7 +173,7 @@ class corpus(object):
                 to_sort[ngram_key] = ngram.count
         return sorted(to_sort, key=operator.itemgetter(0))
 
-    def suggest(self, sentence, cursor_position, num_words, sort_attribute = "COUNT"):
+    def suggest(self, sentence, cursor_position, num_words, sort_attribute = "SIG_SCORE"):
 
         # these are the parts of the active sentence that come before and after the cursor
         before_cursor = sentence[0:cursor_position]
@@ -196,10 +194,11 @@ class corpus(object):
                     for tuple in after_previous:
                         key = tuple[0].string
                         value = tuple[1] * weight
-                        if key not in suggestions:
-                            suggestions[key] = value
-                        else:
-                            suggestions[key] += value
+                        if len(key.split(' ')) == 1:
+                            if key not in suggestions:
+                                suggestions[key] = value
+                            else:
+                                suggestions[key] += value
 
         for reach in range(1, self.foresight+1):
             for n_gram_size in range(1, self.max_ngram_size+1):
@@ -214,19 +213,21 @@ class corpus(object):
                     for tuple in before_next:
                         key = tuple[0].string
                         value = tuple[1] * weight
-                        if key not in suggestions:
-                            suggestions[key] = value
-                        else:
-                            suggestions[key] += value
+                        if len(key.split(' ')) == 1:
+                            if key not in suggestions:
+                                suggestions[key] = value
+                            else:
+                                suggestions[key] += value
 
         baseline_weight = 0.00000001
         for key in self.tree:
             n_gram = self.tree[key]
             value = baseline_weight * n_gram.get_attribute(sort_attribute)
-            if key not in suggestions:
-                suggestions[key] = value
-            else:
-                suggestions[key] += value
+            if len(key.split(' ')) == 1:
+                if key not in suggestions:
+                    suggestions[key] = value
+                else:
+                    suggestions[key] += value
 
         suggestion_list = list(reversed(sorted(suggestions.items(), key=operator.itemgetter(1))))[0:num_words]
 
