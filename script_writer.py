@@ -5,24 +5,23 @@ import corpus
 import operator
 import textwrap
 import random
-import string
 import re
 
 """
-input loop for writing with a source or set of sources
+input loop for writing with a corpus or set of corpora
 """
-class writer(object):
+class script_writer(object):
 
     def __init__(self, hindsight = 3, foresight = 3):
         self.cursor = "|"
-        self.sources = {}
+        self.corpora = {}
         self.pronouncing_dictionary = 0
 
     def header(self):
-        headerString = "\nVOICES\n"
+        headerString = "\nCHARACTERS\n"
         vnum = 1
-        for source in sorted(self.sources):
-            headerString += 'v%s. %s' % (str(vnum), self.sources[source].name)
+        for corpus in sorted(self.corpora):
+            headerString += 'c%s. %s' % (str(vnum), self.corpora[corpus].name)
             vnum+=1
         headerString += "\n____________________"
         return headerString
@@ -37,18 +36,18 @@ class writer(object):
         return sorted_chars[0:number]
 
     def write(self):
-        #self.load_sources()
-        self.load_sources_from_transcript('got', 15)
-        active_source = self.choose_source()
+        #self.load_corpora()
+        self.load_corpora_from_transcript('got', 15)
+        active_corpus = self.choose_corpus()
         sentence = ['START_SENTENCE']
         cursor_position = 1
-        SOURCE_NAME = active_source.name.upper() + ':'
-        log = [SOURCE_NAME]
+        corpus_NAME = active_corpus.name.upper() + ':'
+        log = [corpus_NAME]
 
         while 1:
             words_before = sentence[0:cursor_position]
             words_after = sentence[cursor_position:]
-            suggestions = active_source.suggest(sentence, cursor_position, 20)
+            suggestions = active_corpus.suggest(sentence, cursor_position, 20)
             print textwrap.fill(self.header(),80)
             print textwrap.fill(" ".join(log + words_before[1:] + [self.cursor] + words_after),80)
             self.display_suggestions(suggestions)
@@ -83,13 +82,13 @@ class writer(object):
 				words_before.append(next_word)
 				sentence = words_before + words_after
 				cursor_position += 1
-            elif not re.compile('v[0-9]').search(input) == None: # switch to different source
+            elif not re.compile('v[0-9]').search(input) == None: # switch to different corpus
                 voice_num = input[1:]
-                source_keys = sorted(self.sources.keys())
-                active_source = self.sources[source_keys[int(voice_num) - 1]]
-                print '%s chosen!' % active_source.name
+                corpus_keys = sorted(self.corpora.keys())
+                active_corpus = self.corpora[corpus_keys[int(voice_num) - 1]]
+                print '%s chosen!' % active_corpus.name
                 finished_sentence = self.finish_sentence(words_before, words_after, '.')
-                log = log + [finished_sentence] + [active_source.name.upper() + ':']
+                log = log + [finished_sentence] + [active_corpus.name.upper() + ':']
                 sentence = ['START_SENTENCE']
             elif input in ['.', '?','!']:
                 finished_sentence = self.finish_sentence(words_before, words_after, input)
@@ -131,39 +130,39 @@ class writer(object):
         sentence[-1] += delimiter
         return " ".join(sentence)
 
-    def load_sources_from_transcript(self, tname, number):
+    def load_corpora_from_transcript(self, tname, number):
         for pair in self.biggest_characters(tname, number):
             charname = pair[0]
             print charname
             path = 'texts/transcripts/%s/%s' % (tname, charname)
-            self.sources[charname] = corpus.source(path)
+            self.corpora[charname] = corpus.corpus(path)
 
-    def load_sources(self):
-        source_texts = os.listdir('texts')
+    def load_corpora(self):
+        texts = os.listdir('texts')
         add_another = ''
         while add_another != 'n':
-            for i in range(len(source_texts)):
-                print "%s %s" % (i + 1, source_texts[i])
+            for i in range(len(texts)):
+                print "%s %s" % (i + 1, texts[i])
 
-            choice = raw_input('Enter the number of the source you want to load:\n')
+            choice = raw_input('Enter the number of the corpus you want to load:\n')
 
-            source_name = source_texts[int(choice) - 1]
-            path = 'texts/%s' % source_name
-            self.sources[source_name] = corpus.source(path)
-            # removes from list of possible sources to add on next cycle
-            source_texts.remove(source_name)
-            print "added %s!" % source_name
+            corpus_name = texts[int(choice) - 1]
+            path = 'texts/%s' % corpus_name
+            self.corpora[corpus_name] = corpus.corpus(path)
+            # removes from list of possible corpora to add on next cycle
+            texts.remove(corpus_name)
+            print "added %s!" % corpus_name
             add_another = raw_input('Load another voice? y/n\n')
 
-    # offers several source choices. returns a source
-    def choose_source(self):
-        source_keys = sorted(self.sources.keys())
-        print "SOURCE KEYS",source_keys
-        for i in range(len(source_keys)):
-            print "%s: %s" % (i + 1, source_keys[i])
-        choice = raw_input('Choose a source to write with...\n')
-        active_source = self.sources[source_keys[int(choice) - 1]]
-        return active_source
+    # offers several corpus choices. returns a corpus
+    def choose_corpus(self):
+        corpus_keys = sorted(self.corpora.keys())
+        print "corpus KEYS",corpus_keys
+        for i in range(len(corpus_keys)):
+            print "%s: %s" % (i + 1, corpus_keys[i])
+        choice = raw_input('Choose a corpus to write with...\n')
+        active_corpus = self.corpora[corpus_keys[int(choice) - 1]]
+        return active_corpus
 
     def display_suggestions(self, suggestions):
         for i in range(len(suggestions)):
@@ -174,6 +173,6 @@ class writer(object):
         selection = suggestions[int(chosen_number) - 1][0]
         return selection
 
-w = writer()
-w.biggest_characters('got', 10)
-w.write()
+sw = script_writer()
+sw.biggest_characters('got', 10)
+sw.write()
