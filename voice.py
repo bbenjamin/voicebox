@@ -12,7 +12,7 @@ class voice(object):
         for path, name, weight in paths_names_weights:
             self.weighted_corpora[name] = [corpus.corpus(path, name), weight]
 
-    def suggest(self, sentence, cursor_position, num_words, sort_attribute = "FREQUENCY"):
+    def suggest(self, sentence, cursor_position, num_words, sort_attribute = "frequency"):
         suggestions = {}
         for key in self.weighted_corpora:
             corpus, weight = self.weighted_corpora[key]

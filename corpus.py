@@ -11,7 +11,7 @@ from collections import Counter
 """
 a corpus represents information about a text as a tree indexed by string
 	* each entry in the tree is an ngram object
-	* the key for a multi-word ngram is the space-separated words in the ngram	
+	* the key for a multi-word ngram is the space-separated words in the ngram
 """
 class corpus(object):
 
@@ -119,13 +119,13 @@ class corpus(object):
             return tree[ngram]
 
 
-    def get_before(self, key, distance=1, num_words = 20, sort_attribute="COUNT"):
+    def get_before(self, key, distance=1, num_words = 20, sort_attribute="count"):
         if key in self.tree:
             return self.tree[key].get_before(distance, num_words, sort_attribute)
         else:
             return []
 
-    def get_after(self, key, distance=1, num_words = 20, sort_attribute="COUNT"):
+    def get_after(self, key, distance=1, num_words = 20, sort_attribute="count"):
         if key in self.tree:
             return self.tree[key].get_after(distance, num_words, sort_attribute)
         else:
@@ -173,7 +173,7 @@ class corpus(object):
                 to_sort[ngram_key] = ngram.count
         return sorted(to_sort, key=operator.itemgetter(0))
 
-    def suggest(self, sentence, cursor_position, num_words, sort_attribute = "SIG_SCORE"):
+    def suggest(self, sentence, cursor_position, num_words, sort_attribute = "sig_score"):
 
         # these are the parts of the active sentence that come before and after the cursor
         before_cursor = sentence[0:cursor_position]
@@ -192,7 +192,7 @@ class corpus(object):
                     # crude function for privileging larger n-grams and closer contexts
                     weight = (10**n_gram_size)/(10**reach)
                     for tuple in after_previous:
-                        key = tuple[0].string
+                        key = tuple[0]
                         value = tuple[1] * weight
                         if len(key.split(' ')) == 1:
                             if key not in suggestions:
@@ -211,7 +211,7 @@ class corpus(object):
                     # crude function for privileging larger n-grams and closer contexts
                     weight = (10**n_gram_size)/(10**reach)
                     for tuple in before_next:
-                        key = tuple[0].string
+                        key = tuple[0]
                         value = tuple[1] * weight
                         if len(key.split(' ')) == 1:
                             if key not in suggestions:
@@ -222,7 +222,7 @@ class corpus(object):
         baseline_weight = 0.00000001
         for key in self.tree:
             n_gram = self.tree[key]
-            value = baseline_weight * n_gram.get_attribute(sort_attribute)
+            value = baseline_weight * getattr(n_gram, sort_attribute)
             if len(key.split(' ')) == 1:
                 if key not in suggestions:
                     suggestions[key] = value
@@ -244,7 +244,7 @@ class corpus(object):
 
     def __len__(self):
         return len(self.tree)
-    
+
     def fileToString(self, filename):
     	path = filename
     	f = open(path,"r")
