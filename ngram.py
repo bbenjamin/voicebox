@@ -1,7 +1,7 @@
 __author__ = 'jamiebrew'
 
 # information about a unique string within a corpus
-class ngram(object):
+class Ngram(object):
 
     def __init__(self, string):
         self.string = string
