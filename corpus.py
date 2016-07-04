@@ -53,8 +53,8 @@ class corpus(object):
         print "Words occurring at least %s times: %s" % (wordcount_criterion, len(shortlist))
         return shortlist
 
-    def make_tree(self, string):
-        sentences = self.make_sentences(string)
+    def make_tree(self, str):
+        sentences = self.make_sentences(str)
         shortlist = self.short_list(sentences, self.wordcount_criterion)
 
         T = {}
@@ -95,9 +95,9 @@ class corpus(object):
         return T
 
     # splits the text into sentences, lowercases them and cleans punctuation
-    def make_sentences(self, string):
+    def make_sentences(self, str):
         # split at period followed by newline or space, or question mark, or exclamation point
-        sentences = string.split('.\n' or '. ' or '?' or '!')
+        sentences = str.split('.\n' or '. ' or '?' or '!')
 
         for sentence in range (0,len(sentences)):
             sentences[sentence] = sentences[sentence].strip('\n')
@@ -106,13 +106,13 @@ class corpus(object):
             sentences[sentence] = sentences[sentence].split()
         return sentences
 
-    def add_ngram(self, string, tree):
-        if string in tree:
-            tree[string].count += 1
+    def add_ngram(self, str, tree):
+        if str in tree:
+            tree[str].count += 1
         else:
-            tree[string] = Ngram(string)
-            tree[string].after = [{} for i in range(0,self.foresight)]
-            tree[string].before = [{} for i in range(0,self.hindsight)]
+            tree[str] = Ngram(str)
+            tree[str].after = [{} for i in range(0,self.foresight)]
+            tree[str].before = [{} for i in range(0,self.hindsight)]
 
     def lookup_ngram(self, ngram, tree):
         if ngram in tree:
