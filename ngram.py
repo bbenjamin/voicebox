@@ -21,35 +21,41 @@ class ngram(object):
         return self.string
     
     def __len__(self):
-    	return len(self.string)
+        return len(self.string)
 
-    # returns top n words occuring distance after this ngram
+    # returns top n words occurring distance after this ngram
     def get_after(self, distance=1, n=20, sort_attribute="COUNT"):
-        dictionary = self.after[distance-1]
-        #print 'top %s words occuring %s after "%s":' % (n, distance, self.string)
-        word_list = [] #TODO: cleaner way to do this
-        for key in dictionary:
-            if sort_attribute == "COUNT":
-                word_list.append((dictionary[key], dictionary[key].count))
-            elif sort_attribute == "FREQUENCY":
-                word_list.append((dictionary[key], dictionary[key].frequency))
-            elif sort_attribute == "SIG_SCORE":
-                word_list.append((dictionary[key], dictionary[key].sig_score))
-        return list(reversed(sorted(word_list, key=lambda tup: tup[1])))[0:n]
+        if distance <= len(self.after):
+            dictionary = self.after[distance-1]
+            #print 'top %s words occuring %s after "%s":' % (n, distance, self.string)
+            word_list = [] #TODO: cleaner way to do this
+            for key in dictionary:
+                if sort_attribute == "COUNT":
+                    word_list.append((dictionary[key], dictionary[key].count))
+                elif sort_attribute == "FREQUENCY":
+                    word_list.append((dictionary[key], dictionary[key].frequency))
+                elif sort_attribute == "SIG_SCORE":
+                    word_list.append((dictionary[key], dictionary[key].sig_score))
+            return list(reversed(sorted(word_list, key=lambda tup: tup[1])))[0:n]
+        else:
+            return []
 
-    # returns top n words occuring distance before this ngram
+    # returns top n words occurring distance before this ngram
     def get_before(self, distance=1, n=20, sort_attribute="COUNT"):
-        dictionary = self.before[distance-1]
-        #print 'top %s words occuring %s before "%s":' % (n, distance, self.string)
-        word_list = [] #TODO: cleaner way to do this
-        for key in dictionary:
-            if sort_attribute == "COUNT":
-                word_list.append((dictionary[key], dictionary[key].count))
-            elif sort_attribute == "FREQUENCY":
-                word_list.append((dictionary[key], dictionary[key].frequency))
-            elif sort_attribute == "SIG_SCORE":
-                word_list.append((dictionary[key], dictionary[key].sig_score))
-        return list(reversed(sorted(word_list, key=lambda tup: tup[1])))[0:n]
+        if distance <= len(self.before):
+            dictionary = self.before[distance-1]
+            #print 'top %s words occuring %s before "%s":' % (n, distance, self.string)
+            word_list = [] #TODO: cleaner way to do this
+            for key in dictionary:
+                if sort_attribute == "COUNT":
+                    word_list.append((dictionary[key], dictionary[key].count))
+                elif sort_attribute == "FREQUENCY":
+                    word_list.append((dictionary[key], dictionary[key].frequency))
+                elif sort_attribute == "SIG_SCORE":
+                    word_list.append((dictionary[key], dictionary[key].sig_score))
+            return list(reversed(sorted(word_list, key=lambda tup: tup[1])))[0:n]
+        else:
+            return[]
 
     def get_attribute(self, sort_attribute):
         if sort_attribute == "COUNT":

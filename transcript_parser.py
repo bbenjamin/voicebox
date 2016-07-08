@@ -90,5 +90,4 @@ class transcript_parser(object):
 
 
 p = transcript_parser()
-p.parseTranscript('got')
-p.biggest_characters('got', 100)
+p.parseTranscript('madmen')

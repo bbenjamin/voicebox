@@ -4,7 +4,6 @@ import ngram
 import string
 import math
 import operator
-import time
 import re
 from collections import Counter
 
@@ -15,15 +14,15 @@ a corpus represents information about a text as a tree indexed by string
 """
 class corpus(object):
 
-    def __init__(self, path, name, max_ngram_size = 2, foresight = 2, hindsight = 2, wordcount_criterion = 2):
+    def __init__(self, text, name, max_ngram_size = 2, sort_attribute = "FREQUENCY", foresight = 0, hindsight = 2, wordcount_criterion = 1):
         self.wordcount = 0
         self.wordcount_criterion = wordcount_criterion
-        self.src_text = self.fileToString(path)
         self.foresight = foresight
         self.hindsight = hindsight
         self.max_ngram_size = max_ngram_size
-        self.tree = self.make_tree(self.src_text)
+        self.tree = self.make_tree(text)
         self.name = name
+        self.sort_attribute = sort_attribute
 
     # returns the n words occurring most frequently in a string
     def top_words(self, n, text):
@@ -73,7 +72,7 @@ class corpus(object):
                                 self.wordcount += 1
 
                             # add dictionaries of words following this ngram
-                            for word_position in range(end, end+self.foresight):
+                            for word_position in range(end, end+self.hindsight):
                                 if word_position < len(sentence):
                                     reach = word_position - end
                                     target = T[new_ngram].after[reach]
@@ -82,13 +81,15 @@ class corpus(object):
                                         self.add_ngram(word,target)
 
                             # add dictionaries of words preceding this ngram
-                            for word_position in range(start-1, start-self.hindsight-1, -1):
+                            for word_position in range(start-1, start-self.foresight-1, -1):
                                 if word_position >= 0:
                                    reach = start - word_position
                                    target = T[new_ngram].before[reach-1]
                                    word = sentence[word_position]
                                    if word in shortlist:
                                         self.add_ngram(word,target)
+
+
 
         T = self.calculate_frequencies(T)
         T = self.calculate_sig_scores(T)
@@ -111,25 +112,12 @@ class corpus(object):
             tree[str].count += 1
         else:
             tree[str] = ngram.ngram(str)
-            tree[str].after = [{} for i in range(0,self.foresight)]
-            tree[str].before = [{} for i in range(0,self.hindsight)]
+            tree[str].after = [{} for i in range(0,self.hindsight)]
+            tree[str].before = [{} for i in range(0,self.foresight)]
 
     def lookup_ngram(self, ngram, tree):
         if ngram in tree:
             return tree[ngram]
-
-
-    def get_before(self, key, distance=1, num_words = 20, sort_attribute="COUNT"):
-        if key in self.tree:
-            return self.tree[key].get_before(distance, num_words, sort_attribute)
-        else:
-            return []
-
-    def get_after(self, key, distance=1, num_words = 20, sort_attribute="COUNT"):
-        if key in self.tree:
-            return self.tree[key].get_after(distance, num_words, sort_attribute)
-        else:
-            return []
 
     # given a tree that has kept count for each word, finds and stores normalized frequencies
     def calculate_frequencies(self,T):
@@ -173,7 +161,7 @@ class corpus(object):
                 to_sort[ngram_key] = ngram.count
         return sorted(to_sort, key=operator.itemgetter(0))
 
-    def suggest(self, sentence, cursor_position, num_words, sort_attribute = "SIG_SCORE"):
+    def suggest(self, sentence, cursor_position, num_words):
 
         # these are the parts of the active sentence that come before and after the cursor
         before_cursor = sentence[0:cursor_position]
@@ -181,14 +169,15 @@ class corpus(object):
 
         suggestions = {}
 
-        # look at previous words in sentences, and all the words occurring after them
+        # look at previous words in sentence, and all the words occurring after them
         for reach in range(1, self.hindsight+1):
             for n_gram_size in range(1, self.max_ngram_size+1):
                 if len(before_cursor)+1 >= reach+n_gram_size:
                     end_of_n_gram = len(before_cursor)-reach
                     start_of_n_gram = end_of_n_gram - (n_gram_size-1)
                     previous_n_gram = " ".join(before_cursor[start_of_n_gram:end_of_n_gram+1])
-                    after_previous = self.get_after(previous_n_gram, reach, num_words, sort_attribute)
+                    after_previous = self.get_after(previous_n_gram, reach, num_words)
+                    #print "after %s: %s" % (previous_n_gram, str(after_previous))
                     # crude function for privileging larger n-grams and closer contexts
                     weight = (10**n_gram_size)/(10**reach)
                     for tuple in after_previous:
@@ -206,7 +195,8 @@ class corpus(object):
                     start_of_n_gram = reach - 1
                     end_of_n_gram = start_of_n_gram + (n_gram_size - 1)
                     next_n_gram = " ".join(after_cursor[start_of_n_gram:end_of_n_gram+1])
-                    before_next = self.get_before(next_n_gram, reach, num_words, sort_attribute)
+                    before_next = self.get_before(next_n_gram, reach, num_words)
+                    #print "before %s: %s" % (next_n_gram.string, str(before_next))
 
                     # crude function for privileging larger n-grams and closer contexts
                     weight = (10**n_gram_size)/(10**reach)
@@ -222,7 +212,7 @@ class corpus(object):
         baseline_weight = 0.00000001
         for key in self.tree:
             n_gram = self.tree[key]
-            value = baseline_weight * n_gram.get_attribute(sort_attribute)
+            value = baseline_weight * n_gram.get_attribute(self.sort_attribute)
             if len(key.split(' ')) == 1:
                 if key not in suggestions:
                     suggestions[key] = value
@@ -232,6 +222,18 @@ class corpus(object):
         suggestion_list = list(reversed(sorted(suggestions.items(), key=operator.itemgetter(1))))[0:num_words]
 
         return suggestion_list
+
+    def get_before(self, key, distance=1, num_words = 20):
+        if key in self.tree:
+            return self.tree[key].get_before(distance, num_words, self.sort_attribute)
+        else:
+            return []
+
+    def get_after(self, key, distance=1, num_words = 20):
+        if key in self.tree:
+            return self.tree[key].get_after(distance, num_words, self.sort_attribute)
+        else:
+            return []
 
     def list_of_words(self):
         return list(self.tree.keys())
@@ -244,10 +246,5 @@ class corpus(object):
 
     def __len__(self):
         return len(self.tree)
-    
-    def fileToString(self, filename):
-    	path = filename
-    	f = open(path,"r")
-    	return f.read()
 
 

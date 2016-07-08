@@ -3,28 +3,34 @@ __author__ = 'jamiebrew'
 import corpus
 import operator
 
-# keeps a dictionary of corpora with associated weights
+# keeps a dictionary of sources with associated weights
+# TODO: a source can be a corpus or a voice (which itself points to several sources)
 class voice(object):
 
-    def __init__(self, paths_names_weights, voicename):
-        self.name = voicename
-        self.weighted_corpora = {}
-        for path, name, weight in paths_names_weights:
-            self.weighted_corpora[name] = [corpus.corpus(path, name), weight]
+    def __init__(self, weighted_corpora):
+        self.name = 'no_name'
+        self.weighted_corpora = weighted_corpora
 
-    def suggest(self, sentence, cursor_position, num_words, sort_attribute = "FREQUENCY"):
+    def suggest(self, sentence, cursor_position, num_words):
         suggestions = {}
         for key in self.weighted_corpora:
-            corpus, weight = self.weighted_corpora[key]
+            corp, weight = self.weighted_corpora[key]
             if not weight == 0:
-                contributed_suggestions = corpus.suggest(sentence, cursor_position, num_words, sort_attribute)
+                contributed_suggestions = corp.suggest(sentence, cursor_position, num_words)
                 for word, score in contributed_suggestions:
-                    if word in suggestions:
-                        suggestions[word] += score * weight
+                    if word not in suggestions:
+                        suggestions[word] = [0, {}]
+                        suggestions[word][1][corp.name] = score * weight
                     else:
-                        suggestions[word] = score * weight
-        suggestion_list = list(reversed(sorted(suggestions.items(), key=operator.itemgetter(1))))[0:num_words]
-        return suggestion_list[0:num_words]
+                        suggestions[word][0] += score * weight
+                        suggestions[word][1][corp.name] = score * weight
+        suggestions = list(reversed(sorted(suggestions.items(), key=operator.itemgetter(1))))[0:num_words]
+        return suggestions[0:num_words]
+
+    # adds a corpus to this voice
+    def add_corpus(self, corp, name, weight):
+        self.weighted_corpora[corp.name] = [corp, weight]
+
 
 def first_test():
     p_n_w = [('texts/batman', 'batman', 1), ('texts/bowie', 'bowie', 1), ('texts/queenspeech', 'queen', 2)]
