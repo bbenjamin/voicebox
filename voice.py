@@ -1,6 +1,5 @@
 __author__ = 'jamiebrew'
 
-import corpus
 import operator
 
 # keeps a dictionary of sources with associated weights
@@ -11,6 +10,7 @@ class voice(object):
         self.name = 'no_name'
         self.weighted_corpora = weighted_corpora
 
+    # aggregates the suggestion lists of all constituent corpora in this voice, prints the top num_words from this list
     def suggest(self, sentence, cursor_position, num_words):
         suggestions = {}
         for key in self.weighted_corpora:
@@ -28,15 +28,13 @@ class voice(object):
         return suggestions[0:num_words]
 
     # adds a corpus to this voice
-    def add_corpus(self, corp, name, weight):
+    def add_corpus(self, corp, weight):
         self.weighted_corpora[corp.name] = [corp, weight]
 
-
-def first_test():
-    p_n_w = [('texts/batman', 'batman', 1), ('texts/bowie', 'bowie', 1), ('texts/queenspeech', 'queen', 2)]
-
-    v = voice(p_n_w, 'queen_bowman')
-    suggestions =  v.suggest('i am so very',4,20)
-    print len(suggestions)
-    for s in suggestions:
-        print s
+    # proportionally adjusts the weights to different corpora such that they sum to 1
+    def normalize_weights(self):
+        total_weight = 0
+        for key in self.weighted_corpora:
+            total_weight += self.weighted_corpora[key][1]
+        for key in self.weighted_corpora:
+            self.weighted_corpora[key][1] = self.weighted_corpora[key][1] / total_weight

@@ -11,12 +11,35 @@ import pickler
 
 """
 input loop for writing with a corpus or set of corpora
+
+
+WRITING CONTROLS:
+
+[option #]:     choose option
+x:              delete
+. or ? or !:    end sentence
+z:              move cursor left
+c:              move cursor right
+r:              choose random word (weighted)
+v[voice #]:     change voice
+add:            add voice
+set:            set corpus weights for this voice
+info:           toggle info
+dynamic:        toggle dynamic
+save:           save session
+load:           load session
+[other word]:   insert word
+0:              yield output
+
+
 """
 class voicebox(object):
 
     def __init__(self):
         self.more_info = False
         self.dynamic = True
+        self.mode_list = ['frequency', 'sigscore', 'count']
+        self.mode = 'frequency'
         if raw_input('Load previous session y/n\n') != 'n':
             loaded_voicebox = self.load_session()               # unpickles a previously-saved object
             self.cursor = loaded_voicebox.cursor
@@ -101,6 +124,8 @@ class voicebox(object):
                 self.toggle_dynamic()
             elif input == 'add':
                 self.add_voice()
+            elif input == 'set':
+                self.set_weights(self.active_voice)
             elif re.compile('v[0-9]').search(input): # switch to different corpus
                 voice_num = input[1:]
                 voice_keys = sorted(self.voices.keys())
@@ -141,6 +166,12 @@ class voicebox(object):
         else:
             print "More info off!"
 
+    def set_mode(self):
+        for i in range(len(self.mode_list)):
+            print "%s %s" % (i + 1, self.mode_list[i])
+        choice = raw_input('Enter the number of the session you want to load:\n')
+        self.mode = self.mode_list[int(choice) - 1]
+
     # saves all information about the current session
     def save_session(self):
         path = 'saved/%s.pkl' % raw_input("Choose save name:\n")
@@ -156,17 +187,6 @@ class voicebox(object):
         session_name = sessions[int(choice) - 1]
         path = 'saved/%s' % session_name
         return pickler.loadobject(path)
-
-    # returns a word from the suggestion list; choice weighted according to scores
-    def weighted_random_choice(self, suggestions):
-        total = sum(weight for word, weight in suggestions)
-        r = random.uniform(0,total)
-        upto = 0
-        for word, score_info in suggestions:
-            if upto + score_info[0] >= r:
-                return word
-            upto += score_info[0]
-        assert False, "Shouldn't get here"
 
     # given a chosen word and a tree of scores assigned to it by different sources, updates the weights of those sources
     # according to whether they exceeded or fell short of their expected contribution to the suggestion
@@ -184,10 +204,29 @@ class voicebox(object):
             performance_relative_to_expectation = actual_share - expected_share
             v.weighted_corpora[corp.name][1] += performance_relative_to_expectation * delta
 
+    # prompts user to set weights for each corpus in a given voice
+    def set_weights(self, v):
+        for key in v.weighted_corpora:
+            corpus_name = v.weighted_corpora[key][0].name
+            corpus_weight_prompt = 'Enter the weight for %s:\n' % corpus_name
+            corpus_weight = float(raw_input(corpus_weight_prompt))
+            v.weighted_corpora[key][1] = corpus_weight
+        v.normalize_weights()
+
     # random choice without weight bias
     def flat_random_choice(self, suggestions):
-        choice = random.randint(1, len(suggestions))
-        return choice
+        return random.randint(1, len(suggestions))
+
+    # returns a word from the suggestion list; choice weighted according to scores
+    def weighted_random_choice(self, suggestions):
+        total = sum(weight for word, weight in suggestions)
+        r = random.uniform(0,total)
+        upto = 0
+        for word, score_info in suggestions:
+            if upto + score_info[0] >= r:
+                return word
+            upto += score_info[0]
+        assert False, "Shouldn't get here"
 
     # deletes word before the cursor from sentence
     def delete_word(self, before):
@@ -212,9 +251,9 @@ class voicebox(object):
                 self.add_voice()
                 add_another_voice = raw_input('Add more? y/n\n')
 
+    # asks you to choose corpora from files in 'texts', then adds a voice with those corpora
     def add_voice(self):
-        weighted_corpora = {}
-        total_weight = 0
+        new_voice = voice.voice({})     # creates new voice with no name and empty tree of corpora
         texts = os.listdir('texts')
         add_another_corpus = ''
         while add_another_corpus != 'n':
@@ -227,26 +266,16 @@ class voicebox(object):
             text = f.read()
             corpus_weight_prompt = 'Enter the weight for %s:\n' % corpus_name
             corpus_weight = float(raw_input(corpus_weight_prompt))
-            total_weight += corpus_weight
-            weighted_corpora[corpus_name] = [corpus.corpus(text, corpus_name), corpus_weight]
+            new_voice.add_corpus(corpus.corpus(text, corpus_name), corpus_weight)
             texts.remove(corpus_name)
             add_another_corpus = raw_input('Add another corpus to this voice? y/n\n')
         voicename = raw_input('Name this voice:\n')
-        self.voices[voicename] = voice.voice(weighted_corpora)
-        self.voices[voicename].name = voicename
-        self.normalize_weights(total_weight, self.voices[voicename])
+        new_voice.name = voicename
+        new_voice.normalize_weights()
+        self.voices[voicename] = new_voice
 
-
-
-    # TODO: get this to be the method for adding corpora to voices
-    def add_corpus_to_voice(self, voicename, corp, weight):
-        self.voices[voicename].add_corpus(corp, weight)
-
-    def normalize_weights(self, total_weight, v):
-        for key in v.weighted_corpora:
-            corp, weight = v.weighted_corpora[key]
-            v.weighted_corpora[key][1] = weight/total_weight
-
+    # asks user to specify a transcript and number of characters, and makes separate voices for that number of
+    # the most represented characters in the transcript
     def load_voices_from_transcript(self):
         transcripts = os.listdir('texts/transcripts')
         for i in range(len(transcripts)):
@@ -257,7 +286,7 @@ class voicebox(object):
         for charname, size in self.biggest_characters(transcript_name, number):
             print charname
             path = 'texts/transcripts/%s/%s' % (transcript_name, charname)
-            self.voices[charname] = voice.voice([[file(path).read(), charname, 1]], charname)
+            self.voices[charname] = voice.voice([[file(path).read(), charname, 1]])
 
     # retrieves a list of the top 20 largest character text files in a transcript folder
     def biggest_characters(self, tname, number):
@@ -287,6 +316,7 @@ class voicebox(object):
             if self.more_info:
                 info_string += '\t' + str(total_score)
             suggestion_string += info_string
+
             score_tree = suggestions[i][1][1]
             if self.more_info:
                 suggestion_string += '\t\t'
@@ -297,9 +327,7 @@ class voicebox(object):
         print suggestion_string
 
     def take_suggestion(self, suggestions, input):
-        chosen_number = input
-        selection = suggestions[int(chosen_number) - 1]
-        return selection
+        return suggestions[int(input) - 1]
 
 
 

@@ -52,6 +52,7 @@ class corpus(object):
         print "Words occurring at least %s times: %s" % (wordcount_criterion, len(shortlist))
         return shortlist
 
+    # constructs the tree of ngrams' likelihood of following other ngrams
     def make_tree(self, str):
         sentences = self.make_sentences(str)
         shortlist = self.short_list(sentences, self.wordcount_criterion)
@@ -89,8 +90,6 @@ class corpus(object):
                                    if word in shortlist:
                                         self.add_ngram(word,target)
 
-
-
         T = self.calculate_frequencies(T)
         T = self.calculate_sig_scores(T)
         return T
@@ -107,6 +106,7 @@ class corpus(object):
             sentences[sentence] = sentences[sentence].split()
         return sentences
 
+    # adds an ngram to a given tree
     def add_ngram(self, str, tree):
         if str in tree:
             tree[str].count += 1
@@ -161,6 +161,8 @@ class corpus(object):
                 to_sort[ngram_key] = ngram.count
         return sorted(to_sort, key=operator.itemgetter(0))
 
+    # given a sentence and an insertion position in that sentence, yields a list of words likely to occur at that position
+    # based on adjacent words and baseline frequency
     def suggest(self, sentence, cursor_position, num_words):
 
         # these are the parts of the active sentence that come before and after the cursor
