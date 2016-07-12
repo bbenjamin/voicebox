@@ -20,6 +20,7 @@ class voice(object):
                 for word, score in contributed_suggestions:
                     if word not in suggestions:
                         suggestions[word] = [0, {}]
+                        suggestions[word][0] += score * weight
                         suggestions[word][1][corp.name] = score * weight
                     else:
                         suggestions[word][0] += score * weight

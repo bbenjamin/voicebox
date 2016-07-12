@@ -191,7 +191,6 @@ class voicebox(object):
     # given a chosen word and a tree of scores assigned to it by different sources, updates the weights of those sources
     # according to whether they exceeded or fell short of their expected contribution to the suggestion
     def update_weights(self, v, score_tree, delta):
-        print "total score:", sum(score_tree.values())
         total_score = sum(score_tree.values())
         for key in v.weighted_corpora:
             corp, wt = v.weighted_corpora[key]
