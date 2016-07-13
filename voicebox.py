@@ -201,6 +201,9 @@ class voicebox(object):
                 sub_score = 0
             actual_share = sub_score / total_score
             performance_relative_to_expectation = actual_share - expected_share
+            print "share from %s:" % corp.name
+            print actual_share
+            print "out of", expected_share
             v.weighted_corpora[corp.name][1] += performance_relative_to_expectation * delta
 
     # prompts user to set weights for each corpus in a given voice

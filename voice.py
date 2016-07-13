@@ -21,10 +21,10 @@ class voice(object):
                     if word not in suggestions:
                         suggestions[word] = [0, {}]
                         suggestions[word][0] += score * weight
-                        suggestions[word][1][corp.name] = score * weight
+                        suggestions[word][1][corp.name] = score #* weight
                     else:
                         suggestions[word][0] += score * weight
-                        suggestions[word][1][corp.name] = score * weight
+                        suggestions[word][1][corp.name] = score #* weight
         suggestions = list(reversed(sorted(suggestions.items(), key=operator.itemgetter(1))))[0:num_words]
         return suggestions[0:num_words]
 
