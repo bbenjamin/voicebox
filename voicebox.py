@@ -37,9 +37,10 @@ class voicebox(object):
 
     def __init__(self):
         self.more_info = False
-        self.dynamic = True
+        self.dynamic = False
         self.mode_list = ['frequency', 'sigscore', 'count']
         self.mode = 'frequency'
+        self.num_options = 10
         if raw_input('Load previous session y/n\n') != 'n':
             loaded_voicebox = self.load_session()               # unpickles a previously-saved object
             self.cursor = loaded_voicebox.cursor
@@ -77,9 +78,10 @@ class voicebox(object):
         voice_name = self.active_voice.name.upper()
         self.log += [voice_name + ':']
         while 1:
+            print "cursor position:", self.cursor_position
             words_before = sentence[0:self.cursor_position]
             words_after = sentence[self.cursor_position:]
-            suggestions = self.active_voice.suggest(sentence, self.cursor_position, 20)
+            suggestions = self.active_voice.suggest(sentence, self.cursor_position, self.num_options)
             print self.header()
             print textwrap.fill(" ".join(self.log + words_before[1:] + [self.cursor] + words_after),80)
             self.display_suggestions(suggestions)
@@ -104,7 +106,7 @@ class voicebox(object):
                 self.log = self.log + sentence
                 self.log.remove('START_SENTENCE')
                 print " ".join(self.log)
-                return    
+                return
             elif input == 'z':
                 self.cursor_position -= 1
             elif input == 'c':
@@ -139,6 +141,7 @@ class voicebox(object):
                 finished_sentence = self.finish_sentence(words_before, words_after, input)
                 self.log = self.log + [finished_sentence]
                 sentence = ['START_SENTENCE']
+                self.cursor_position = 1
             elif input == 'save':
                 self.save_session()
             elif input == 'load':
@@ -201,9 +204,6 @@ class voicebox(object):
                 sub_score = 0
             actual_share = sub_score / total_score
             performance_relative_to_expectation = actual_share - expected_share
-            print "share from %s:" % corp.name
-            print actual_share
-            print "out of", expected_share
             v.weighted_corpora[corp.name][1] += performance_relative_to_expectation * delta
 
     # prompts user to set weights for each corpus in a given voice
@@ -221,7 +221,7 @@ class voicebox(object):
 
     # returns a word from the suggestion list; choice weighted according to scores
     def weighted_random_choice(self, suggestions):
-        total = sum(weight for word, weight in suggestions)
+        total = sum(score_info[0] for word, score_info in suggestions)
         r = random.uniform(0,total)
         upto = 0
         for word, score_info in suggestions:
