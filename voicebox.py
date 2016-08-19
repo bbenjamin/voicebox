@@ -8,6 +8,7 @@ import random
 import re
 import voice
 import pickler
+from random import randint
 
 """
 input loop for writing with a corpus or set of corpora
@@ -137,6 +138,23 @@ class voicebox(object):
                 finished_sentence = self.finish_sentence(words_before, words_after, '.', '\n\n')
                 self.log = self.log + [finished_sentence] + [chosen_voice_name.upper() + ':']
                 sentence = ['START_SENTENCE']
+            elif re.compile('rand[0-9]').search(input):
+                    num_words = input[4:]
+                    counter = 0
+                    while counter < int(num_words):
+                        random_choice = randint(1, self.num_options)
+                        choice = self.take_suggestion(suggestions, random_choice)
+                        next_word = choice[0]
+                        score_tree = choice[1][1]
+                        words_before.append(next_word)
+                        sentence = words_before + words_after
+                        if self.dynamic:
+                            self.update_weights(self.active_voice, score_tree, .1)
+                        self.cursor_position += 1
+                        counter += 1
+                        words_before = sentence[0:self.cursor_position]
+                        words_after = sentence[self.cursor_position:]
+                        suggestions = self.active_voice.suggest(sentence, self.cursor_position, self.num_options)
             elif input in ['.', '?','!']:
                 finished_sentence = self.finish_sentence(words_before, words_after, input)
                 self.log = self.log + [finished_sentence]
