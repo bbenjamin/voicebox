@@ -23,6 +23,7 @@ z:              move cursor left
 c:              move cursor right
 r:              choose random word (weighted)
 v[voice #]:     change voice
+rand[#]:        randomly chooses # number of words
 add:            add voice
 set:            set corpus weights for this voice
 info:           toggle info
